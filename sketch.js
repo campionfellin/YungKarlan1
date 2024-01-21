@@ -92,16 +92,16 @@ function draw() {
     rect(frameSize * (3/4), frameSize * (3/4), width - frameSize * (3/2), frameSize/4);
     rect(frameSize * (3/4), height - (frameSize), width - frameSize * (3/2), frameSize/4);
 
-            // Draw the circle in the center of the window
-            noFill();
-            noStroke();
-            ellipse(width / 2, height / 2, 2 * circleRadius);
+    // Draw the circle in the center of the window
+    noFill();
+    noStroke();
+    ellipse(width / 2, height / 2, 2 * circleRadius);
 
-            for (let s of streams) {
-                s.update();
-                s.display();
-            }
-        }
+    for (let s of streams) {
+        s.update();
+        s.display();
+    }
+}
 
 function mousePressed() {
     pressCount++;
@@ -119,7 +119,7 @@ function mousePressed() {
         s.changeMovement(randomMovement);
     }
   
-  return false; // This prevents any default behavior
+    return false; // This prevents any default behavior
 }
 
 
@@ -218,167 +218,168 @@ function mousePressed() {
     }
 }
       
-        class Stream {
-            constructor(color) {
+class Stream {
+    constructor(color) {
+        this.justBounced = false;
+        this.color = color;
+        this.points = [];
+        this.noiseOffset = hl.randomInt(1000);
+        this.currentAngle = hl.random(TWO_PI);
+        this.initStream();
+        this.randomMovement = true;
+    }
+
+    initStream() {
+        let startX, startY;
+        do {
+            startX = hl.random(width);
+            startY = hl.random(height);
+        } while (!this.isInsideShape(createVector(startX, startY))); // changed this condition
+
+        this.points.push(createVector(startX, startY));
+    }
+
+    update() {
+        let lastPoint = this.points[this.points.length - 1];
+
+        if (this.insideCircle) {
+            // Random movement inside the circle
+            let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
+            this.currentAngle += angleVariation;
+        } else if (this.randomMovement) {
+            // Scatter movement
+            let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
+            this.currentAngle += angleVariation;
+        } else {
+            // Magnetized movement towards the circle
+            this.currentAngle = this.angleToCircleBorder(lastPoint);
+        }
+
+        if (this.justBounced) {
+            // Disable noise influence for some frames after bouncing
+            // You can adjust the number of frames as needed
+            this.framesAfterBounce = (this.framesAfterBounce || 0) + 1;
+            if (this.framesAfterBounce > 5) {  // Example: 10 frames
                 this.justBounced = false;
-                this.color = color;
-                this.points = [];
-                this.noiseOffset = hl.randomInt(1000);
-                this.currentAngle = hl.random(TWO_PI);
-                this.initStream();
-                this.randomMovement = true;
+                this.framesAfterBounce = 0;
             }
-
-initStream() {
-    let startX, startY;
-    do {
-        startX = hl.random(width);
-        startY = hl.random(height);
-    } while (!this.isInsideShape(createVector(startX, startY))); // changed this condition
-
-    this.points.push(createVector(startX, startY));
-}
-
-            update() {
-                let lastPoint = this.points[this.points.length - 1];
-
-    if (this.insideCircle) {
-        // Random movement inside the circle
-        let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
-        this.currentAngle += angleVariation;
-    } else if (this.randomMovement) {
-        // Scatter movement
-        let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
-        this.currentAngle += angleVariation;
-    } else {
-        // Magnetized movement towards the circle
-        this.currentAngle = this.angleToCircleBorder(lastPoint);
-    }
-
-    if (this.justBounced) {
-        // Disable noise influence for some frames after bouncing
-        // You can adjust the number of frames as needed
-        this.framesAfterBounce = (this.framesAfterBounce || 0) + 1;
-        if (this.framesAfterBounce > 5) {  // Example: 10 frames
-            this.justBounced = false;
-            this.framesAfterBounce = 0;
+        } else {
+            this.noiseOffset += 0.05;  // Update noise offset if not recently bounced
         }
-    } else {
-        this.noiseOffset += 0.05;  // Update noise offset if not recently bounced
-    }
-              
+                
 
-    let len = 5;
-    let newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+        let len = 5;
+        let newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
 
-              
-              
-    if (this.isInsideShape(newPoint) && !this.insideCircle && this.randomMovement) {
-        // If the stream is about to enter the circle and is not allowed to, bounce it away
-        let angleToCenter = this.angleToCircleBorder(newPoint);
-        this.currentAngle = 2 * angleToCenter - PI - this.currentAngle;
-        newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
-        this.justBounced = true;
-    }
-
-    if (this.isInsideShape(newPoint)) {
-        this.insideCircle = true;
-    } else {
-        this.insideCircle = false;
-    }
-if (!this.isInsideShape(newPoint)) {
-    for (let obstacle of obstacles) {
-        let distance = dist(lastPoint.x, lastPoint.y, obstacle.position.x, obstacle.position.y);
-        if (distance < obstacle.radius) {
-            // Repulsion effect
-            let angleToObstacle = atan2(obstacle.position.x - lastPoint.x, obstacle.position.y - lastPoint.y);
-            let deviationAngle = this.currentAngle - angleToObstacle;
-
-            if (abs(deviationAngle) < PI / 2) {
-                this.currentAngle += map(distance, 0, obstacle.radius, -PI / 4, PI / 4);
-            } else {
-                this.currentAngle -= map(distance, 0, obstacle.radius, -PI / 4, PI / 4);
-            }
-
-            // Update newPoint after obstacle interaction
+                
+                
+        if (this.isInsideShape(newPoint) && !this.insideCircle && this.randomMovement) {
+            // If the stream is about to enter the circle and is not allowed to, bounce it away
+            let angleToCenter = this.angleToCircleBorder(newPoint);
+            this.currentAngle = 2 * angleToCenter - PI - this.currentAngle;
             newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+            this.justBounced = true;
+        }
 
+        if (this.isInsideShape(newPoint)) {
+            this.insideCircle = true;
+        } else {
+            this.insideCircle = false;
+        }
+ 
+        if (!this.isInsideShape(newPoint)) {
+            for (let obstacle of obstacles) {
+                let distance = dist(lastPoint.x, lastPoint.y, obstacle.position.x, obstacle.position.y);
+                if (distance < obstacle.radius) {
+                    // Repulsion effect
+                    let angleToObstacle = atan2(obstacle.position.x - lastPoint.x, obstacle.position.y - lastPoint.y);
+                    let deviationAngle = this.currentAngle - angleToObstacle;
+
+                    if (abs(deviationAngle) < PI / 2) {
+                        this.currentAngle += map(distance, 0, obstacle.radius, -PI / 4, PI / 4);
+                    } else {
+                        this.currentAngle -= map(distance, 0, obstacle.radius, -PI / 4, PI / 4);
+                    }
+
+                    // Update newPoint after obstacle interaction
+                    newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+
+                }
+            }
+        }
+
+          
+        // Bounce off the canvas boundaries
+        if (newPoint.x <= width * (1/20) || newPoint.x >= width * (19/20)) {
+            this.currentAngle = PI - this.currentAngle;
+            this.justBounced = true;
+        }
+        if (newPoint.y <= height * (1/20) || newPoint.y >= height * (19/20)) {
+            this.currentAngle = - this.currentAngle;
+            this.justBounced = true;
+        }
+        
+        newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+
+        // Check again if new point is outside the boundary, and adjust if necessary
+        if (newPoint.x <= width * (1/20) || newPoint.x >= width * (19/20) || newPoint.y <= height * (1/20) || newPoint.y >= height * (19/20)) {
+            newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+        }
+
+        this.points.push(newPoint);
+        if (this.justBounced) {
+
+        } else {
+        this.noiseOffset += 0.05;
+        }
+
+        if (this.points.length > 100) {
+            this.points.shift();
         }
     }
-}
-
           
-                // Bounce off the canvas boundaries
-                if (newPoint.x <= width * (1/20) || newPoint.x >= width * (19/20)) {
-                    this.currentAngle = PI - this.currentAngle;
-                    this.justBounced = true;
-                }
-                if (newPoint.y <= height * (1/20) || newPoint.y >= height * (19/20)) {
-                    this.currentAngle = - this.currentAngle;
-                    this.justBounced = true;
-                }
-              
-                newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
-
-                // Check again if new point is outside the boundary, and adjust if necessary
-                if (newPoint.x <= width * (1/20) || newPoint.x >= width * (19/20) || newPoint.y <= height * (1/20) || newPoint.y >= height * (19/20)) {
-                    newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
-                }
-
-                this.points.push(newPoint);
-                if (this.justBounced) {
-
-                } else {
-                this.noiseOffset += 0.05;
-                }
-
-                if (this.points.length > 100) {
-                    this.points.shift();
-                }
-            }
-          
-            angleToCircleBorder(point) {
-                return atan2(height / 2 - point.y, width / 2 - point.x);
-            }
-          
-            changeMovement(randomMovement) {
-                this.randomMovement = randomMovement;
-                if (randomMovement) {
-                    this.insideCircle = false; // Ensure stream is set as outside the circle
-                }
-            }
-          
-            isInsideShape(point) {
-                if (shapeType === 'circle') {
-                    return dist(point.x, point.y, width / 2, height / 2) < circleRadius;
-                } else if (shapeType === 'square') {
-                    // Can rename variable later, but let's say that `circleRadius` is the side length of the square
-                    return point.x > width / 2 - circleRadius / 2 && point.x < width / 2 + circleRadius / 2 && point.y > height / 2 - circleRadius / 2 && point.y < height / 2 + circleRadius / 2;
-                } else if (shapeType === 'triangle') {
-                    // Can rename variable later, but `circleRadius` is the side length of the triangle
-                    // See if point is within the triangle
-                    let x1 = width / 2 - circleRadius / 2;
-                    let y1 = height / 2 + circleRadius / 2;
-                    let x2 = width / 2 + circleRadius / 2;
-                    let y2 = height / 2 + circleRadius / 2;
-                    let x3 = width / 2;
-                    let y3 = height / 2 - circleRadius / 2;
-                    let denominator = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
-                    let a = ((y2 - y3) * (point.x - x3) + (x3 - x2) * (point.y - y3)) / denominator;
-                    let b = ((y3 - y1) * (point.x - x3) + (x1 - x3) * (point.y - y3)) / denominator;
-                    let c = 1 - a - b;
-                    return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
-                }
-            }
-
-            display() {
-                noFill();
-                stroke(this.color);
-                strokeWeight(1);
-                beginShape();
-                for (let pt of this.points) {
-                    vertex(pt.x, pt.y);
-                }
-                endShape();
-            }
+    angleToCircleBorder(point) {
+        return atan2(height / 2 - point.y, width / 2 - point.x);
+    }
+    
+    changeMovement(randomMovement) {
+        this.randomMovement = randomMovement;
+        if (randomMovement) {
+            this.insideCircle = false; // Ensure stream is set as outside the circle
         }
+    }
+    
+    isInsideShape(point) {
+        if (shapeType === 'circle') {
+            return dist(point.x, point.y, width / 2, height / 2) < circleRadius;
+        } else if (shapeType === 'square') {
+            // Can rename variable later, but let's say that `circleRadius` is the side length of the square
+            return point.x > width / 2 - circleRadius / 2 && point.x < width / 2 + circleRadius / 2 && point.y > height / 2 - circleRadius / 2 && point.y < height / 2 + circleRadius / 2;
+        } else if (shapeType === 'triangle') {
+            // Can rename variable later, but `circleRadius` is the side length of the triangle
+            // See if point is within the triangle
+            let x1 = width / 2 - circleRadius / 2;
+            let y1 = height / 2 + circleRadius / 2;
+            let x2 = width / 2 + circleRadius / 2;
+            let y2 = height / 2 + circleRadius / 2;
+            let x3 = width / 2;
+            let y3 = height / 2 - circleRadius / 2;
+            let denominator = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+            let a = ((y2 - y3) * (point.x - x3) + (x3 - x2) * (point.y - y3)) / denominator;
+            let b = ((y3 - y1) * (point.x - x3) + (x1 - x3) * (point.y - y3)) / denominator;
+            let c = 1 - a - b;
+            return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+        }
+    }
+
+    display() {
+        noFill();
+        stroke(this.color);
+        strokeWeight(1);
+        beginShape();
+        for (let pt of this.points) {
+            vertex(pt.x, pt.y);
+        }
+        endShape();
+    }
+}
