@@ -7,7 +7,8 @@ let obstacles = [];
 let pressCount = 0;
 let bgWhite;
 const numOfObstacles = 20;  // Or any other number you like
-let images = [null];
+let outer_images = [null];
+let inner_images = [null];
 const transparencyThreshold = 128;
 let imgCenter;
 
@@ -15,12 +16,21 @@ function preload() {
     let circleDiameter = Math.min(windowWidth, windowHeight);
     let desiredImageHeight = circleDiameter * 2;
 
-    images = ["btc.svg"]
-    for (let i = 0; i < images.length; i++) {
-        loadImage(images[i], img => {
+    outer_images = ["btc_circle.svg"]
+    inner_images = ["btc_b.svg"]
+    for (let i = 0; i < outer_images.length; i++) {
+        loadImage(outer_images[i], img => {
             let scaleFactor = desiredImageHeight / img.height;
             img.resize(img.width * scaleFactor, img.height * scaleFactor);
-            images[i] = img;
+            outer_images[i] = img;
+        });
+    }
+
+    for (let i = 0; i < inner_images.length; i++) {
+        loadImage(inner_images[i], img => {
+            let scaleFactor = desiredImageHeight / img.height;
+            img.resize(img.width * scaleFactor, img.height * scaleFactor);
+            inner_images[i] = img;
         });
     }
 }
@@ -31,6 +41,9 @@ function setup() {
     createCanvas(canvasSize, canvasSize);
     circleRadiusOptions = [3, 6, 12];
     circleRadius = width / hl.randomElement(circleRadiusOptions);
+
+    // For the btc...
+    circleRadius = 100;
     imgCenter = createVector(width / 2, height / 2);
 
     let shapeTypeOptions = ['circle', 'square', 'triangle'];
@@ -100,7 +113,11 @@ function draw() {
         background(0);
         fill(255);
     }
-            
+           
+    for (let img of inner_images) {
+        imageMode(CENTER)
+        image(img, width/2, height/2, 100, 100);
+    }
 
                 // Draw the frame
     let frameSize = width * (1/20);
@@ -246,7 +263,7 @@ class Stream {
         this.currentAngle = hl.random(TWO_PI);
         this.initStream();
         this.randomMovement = true;
-        this.attractMode = true;
+        this.attractMode = false;
     }
 
     initStream() {
@@ -264,14 +281,14 @@ class Stream {
     }
 
     isOverAnyImage(point) {
-        for (let img of images) {
+        for (let img of inner_images) {
             if (this.isOverImage(point, img)) return true;
         }
         return false;
     }
 
     isOverAssignedImage(point) {
-        return this.isOverImage(point, images[this.assignedImageIdx]);
+        return this.isOverImage(point, inner_images[this.assignedImageIdx]);
     }
 
     isInsideImage(point) {
@@ -295,7 +312,7 @@ class Stream {
         let closestDistance = Infinity;
         let closestImageCenter;
 
-        for (let img of images) {
+        for (let img of inner_images) {
             let distance = dist(point.x, point.y, imgCenter.x, imgCenter.y);
             if (distance < closestDistance && this.isOverImage(point, img)) {
                 closestDistance = distance;
@@ -322,16 +339,16 @@ class Stream {
         let lastPoint = this.points[this.points.length - 1];
 
         // Shape wise...
-        if (this.attractMode) {
-            if (this.isOutsideAllImages(lastPoint) || this.insideImage || this.isOverAssignedImage(lastPoint)) {
-                this.currentAngle = this.calculateAngleTowardsImage(lastPoint, this.assignedImageIdx);
-            }
-        } else {
-            if (this.isOverAnyImage(lastPoint)) {
-                // Repulsion mechanism: If point is inside any image, move away from the image center
-                this.currentAngle = this.calculateAngleAwayFromClosestImageCenter(lastPoint);
-            }
-        }
+        // if (this.attractMode) {
+        //     if (this.isOutsideAllImages(lastPoint) || this.insideImage || this.isOverAssignedImage(lastPoint)) {
+        //         this.currentAngle = this.calculateAngleTowardsImage(lastPoint, this.assignedImageIdx);
+        //     }
+        // } else {
+        //     if (this.isOverAnyImage(lastPoint)) {
+        //         // Repulsion mechanism: If point is inside any image, move away from the image center
+        //         this.currentAngle = this.calculateAngleAwayFromClosestImageCenter(lastPoint);
+        //     }
+        // }
 
         if (this.insideCircle) {
             // Random movement inside the circle
